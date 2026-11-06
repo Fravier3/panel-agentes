@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agentes">
+<meta name="description" content="Panel visual para ver a tus agentes trabajando">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Panel de Agentes</title>
+<style>
+/* ===== Sistema de diseño ===== */
+:root{
+  --bg:#f3f5fa; --surface:#ffffff; --surface-2:#eaeef7; --text:#141a2b; --muted:#5d6783;
+  --line:#dde2ef; --primary:#4f6bff; --ok:#14a36b; --warn:#d98a00; --err:#d6455d;
+  --shadow:0 6px 24px rgba(20,26,43,.08);
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --r-sm:10px; --r-md:16px; --r-lg:22px;
+  --font:-apple-system,system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1420; --surface:#171e2f; --surface-2:#1f2842; --text:#eef1fb; --muted:#9aa5c4;
+    --line:#2a3452; --primary:#7b92ff; --ok:#3ddc97; --warn:#ffc24d; --err:#ff6f87;
+    --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--font);
+  user-select:none;-webkit-user-select:none;overflow-x:hidden;
+}
+#app{
+  min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
+
+/* ===== Cabecera ===== */
+.top{padding:var(--s5) var(--s4) var(--s3);display:flex;align-items:center;justify-content:space-between;gap:var(--s3)}
+.top h1{font-size:24px;line-height:1.1;margin:0;letter-spacing:-.02em}
+.top p{margin:var(--s1) 0 0;color:var(--muted);font-size:14px}
+.btn{
+  min-height:44px;min-width:44px;padding:0 var(--s4);border-radius:999px;border:0;
+  background:var(--primary);color:#fff;font-weight:650;font-size:15px;
+  display:inline-flex;align-items:center;gap:var(--s2);justify-content:center;
+  transition:transform .12s ease,opacity .12s ease;
+}
+.btn:active{transform:scale(.96);opacity:.9}
+.btn.ghost{background:var(--surface-2);color:var(--text)}
+.btn svg{width:18px;height:18px}
+
+/* ===== Resumen ===== */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);padding:0 var(--s4) var(--s3)}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s3);text-align:center}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+
+/* ===== Tarjetas de agentes ===== */
+.agents{display:grid;gap:var(--s3);padding:0 var(--s4) var(--s3)}
+@media (min-width:700px){.agents{grid-template-columns:repeat(3,1fr)}}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--s4);box-shadow:var(--shadow);display:grid;grid-template-columns:76px 1fr;gap:var(--s3);
+  align-items:center;animation:rise .4s ease both;
+}
+.card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
+.avatar{width:76px;height:76px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;position:relative}
+.avatar svg{width:64px;height:64px}
+.avatar::after{
+  content:"";position:absolute;right:2px;bottom:2px;width:16px;height:16px;border-radius:50%;
+  border:3px solid var(--surface);background:var(--muted);
+}
+.card[data-estado="trabajando"] .avatar::after{background:var(--warn);animation:pulse 1.2s ease-in-out infinite}
+.card[data-estado="listo"] .avatar::after{background:var(--ok)}
+.card[data-estado="espera"] .avatar::after{background:var(--muted)}
+.card[data-estado="error"] .avatar::after{background:var(--err)}
+.card[data-estado="trabajando"] .avatar svg{animation:bob 1.6s ease-in-out infinite}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s2)}
+.name{font-weight:700;font-size:17px}
+.role{color:var(--muted);font-size:13px}
+.badge{font-size:12px;font-weight:650;padding:3px 10px;border-radius:999px;background:var(--surface-2);white-space:nowrap}
+.card[data-estado="trabajando"] .badge{color:var(--warn)}
+.card[data-estado="listo"] .badge{color:var(--ok)}
+.task{margin:var(--s2) 0;font-size:14px;min-height:20px;overflow-wrap:anywhere}
+.bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--primary);border-radius:999px;transition:width .5s ease}
+.card[data-estado="listo"] .bar i{background:var(--ok)}
+
+/* ===== Actividad ===== */
+.log{margin:0 var(--s4) var(--s5);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4);flex:1}
+.log h2{margin:0 0 var(--s3);font-size:15px}
+.log ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.log li{font-size:13px;color:var(--muted);display:flex;gap:var(--s2);animation:rise .3s ease both}
+.log li time{font-variant-numeric:tabular-nums;flex:none}
+.log li strong{color:var(--text)}
+.vacio{color:var(--muted);font-size:14px;text-align:center;padding:var(--s4) 0}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translate(-50%,20px);
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;
+  opacity:0;pointer-events:none;transition:all .25s ease;z-index:10;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulse{50%{transform:scale(1.25)}}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div>
+      <h1>Mis agentes</h1>
+      <p id="subtitulo">Demo de ejemplo</p>
+    </div>
+    <button class="btn" id="btnDemo" aria-label="Iniciar o pausar la demo"></button>
+  </header>
+
+  <section class="stats" aria-label="Resumen">
+    <div class="stat"><b id="nTrab">0</b><span>Trabajando</span></div>
+    <div class="stat"><b id="nListo">0</b><span>Listos</span></div>
+    <div class="stat"><b id="nTareas">0</b><span>Tareas hechas</span></div>
+  </section>
+
+  <main class="agents" id="agentes" aria-live="polite"></main>
+
+  <section class="log">
+    <h2>Actividad reciente</h2>
+    <ul id="log"></ul>
+    <p class="vacio" id="vacio">Toca "Iniciar" para ver a los agentes trabajar.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ===== Versión (debe coincidir con version.json y CACHE en sw.js) ===== */
+const APP_VERSION = '1.0.0';
+
+/* ===== Datos de los agentes (cambia aquí nombres, roles y tareas) ===== */
+const AGENTES = [
+  { id:'inv',  nombre:'Rastreador', rol:'Investigador', color:'#2bb8d9',
+    tareas:['Buscando fuentes','Comparando resultados','Resumiendo hallazgos'] },
+  { id:'prog', nombre:'Chispa',     rol:'Programador',  color:'#8b5cf6',
+    tareas:['Escribiendo el código','Probando funciones','Corrigiendo errores'] },
+  { id:'rev',  nombre:'Lupa',       rol:'Revisor',      color:'#22c58b',
+    tareas:['Leyendo el trabajo','Verificando datos','Aprobando entrega'] },
+];
+
+/* ===== Avatares SVG (robots originales) ===== */
+function avatarSVG(a){
+  const c = a.color;
+  const ojos = {
+    inv : `<circle cx="26" cy="34" r="5" fill="#fff"/><circle cx="38" cy="34" r="5" fill="#fff"/><circle cx="26" cy="34" r="2.2" fill="#0f1420"/><circle cx="38" cy="34" r="2.2" fill="#0f1420"/>`,
+    prog: `<rect x="19" y="29" width="26" height="10" rx="5" fill="#0f1420"/><rect x="23" y="32" width="6" height="4" rx="2" fill="${c}"/><rect x="35" y="32" width="6" height="4" rx="2" fill="${c}"/>`,
+    rev : `<path d="M20 34l4 4 8-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)"/><circle cx="40" cy="34" r="4" fill="#fff"/><circle cx="40" cy="34" r="1.8" fill="#0f1420"/>`,
+  }[a.id];
+  const antena = {
+    inv : `<line x1="32" y1="14" x2="32" y2="6" stroke="${c}" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="5" r="3.5" fill="${c}"/>`,
+    prog: `<line x1="22" y1="14" x2="18" y2="7" stroke="${c}" stroke-width="3" stroke-linecap="round"/><line x1="42" y1="14" x2="46" y2="7" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
+    rev : `<path d="M32 15v-7" stroke="${c}" stroke-width="3" stroke-linecap="round"/><path d="M27 8h10" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
+  }[a.id];
+  return `<svg viewBox="0 0 64 64" role="img" aria-label="Avatar de ${a.nombre}">
+    ${antena}
+    <rect x="12" y="14" width="40" height="34" rx="12" fill="${c}"/>
+    <rect x="16" y="18" width="32" height="26" rx="9" fill="rgba(255,255,255,.18)"/>
+    ${ojos}
+    <rect x="25" y="41" width="14" height="3" rx="1.5" fill="rgba(15,20,32,.55)"/>
+    <rect x="18" y="49" width="28" height="9" rx="4.5" fill="${c}" opacity=".75"/>
+  </svg>`;
+}
+
+/* ===== Estado ===== */
+const estado = {};            // id -> {estado, progreso, tarea}
+let tareasHechas = 0;
+let corriendo = false;
+let timer = null;
+
+const $ = id => document.getElementById(id);
+const hora = () => new Date().toLocaleTimeString('es-PR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('on'), 2200);
+}
+function vibrar(ms=15){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
+
+/* ===== Render ===== */
+function crearTarjetas(){
+  $('agentes').innerHTML = AGENTES.map(a => `
+    <article class="card" id="card-${a.id}" data-estado="espera">
+      <div class="avatar">${avatarSVG(a)}</div>
+      <div>
+        <div class="head"><div><div class="name">${a.nombre}</div><div class="role">${a.rol}</div></div>
+        <span class="badge" id="b-${a.id}">En espera</span></div>
+        <p class="task" id="t-${a.id}">Esperando instrucciones</p>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="p-${a.id}"></i></div>
+      </div>
+    </article>`).join('');
+  AGENTES.forEach(a => estado[a.id] = {estado:'espera', progreso:0, tarea:0});
+}
+
+const ETIQUETA = {espera:'En espera', trabajando:'Trabajando', listo:'Listo', error:'Error'};
+
+function pintar(a){
+  const s = estado[a.id], card = $('card-'+a.id);
+  card.dataset.estado = s.estado;
+  $('b-'+a.id).textContent = ETIQUETA[s.estado];
+  $('p-'+a.id).style.width = s.progreso + '%';
+  card.querySelector('[role=progressbar]').setAttribute('aria-valuenow', Math.round(s.progreso));
+  $('t-'+a.id).textContent =
+    s.estado === 'trabajando' ? a.tareas[Math.min(s.tarea, a.tareas.length-1)] + '…' :
+    s.estado === 'listo' ? 'Tarea terminada' : 'Esperando instrucciones';
+  const vals = Object.values(estado);
+  $('nTrab').textContent = vals.filter(v => v.estado==='trabajando').length;
+  $('nListo').textContent = vals.filter(v => v.estado==='listo').length;
+  $('nTareas').textContent = tareasHechas;
+}
+
+function registrar(a, texto){
+  $('vacio').hidden = true;
+  const ul = $('log'), li = document.createElement('li');
+  const t = document.createElement('time'); t.textContent = hora();
+  const p = document.createElement('span');
+  const n = document.createElement('strong'); n.textContent = a.nombre;
+  p.append(n, ' ' + texto);
+  li.append(t, p);
+  ul.prepend(li);
+  while (ul.children.length > 8) ul.lastChild.remove();
+}
+
+/* ===== Simulación (reemplaza esto por datos reales más adelante) ===== */
+function paso(){
+  AGENTES.forEach(a => {
+    const s = estado[a.id];
+    if (s.estado === 'espera' || s.estado === 'listo'){
+      if (Math.random() < 0.35){
+        s.estado = 'trabajando'; s.progreso = 0; s.tarea = 0;
+        registrar(a, 'empezó una tarea');
+      }
+    } else if (s.estado === 'trabajando'){
+      s.progreso = Math.min(100, s.progreso + 8 + Math.random()*14);
+      const nueva = Math.floor(s.progreso / (100 / a.tareas.length));
+      if (nueva !== s.tarea && s.progreso < 100){
+        s.tarea = nueva; registrar(a, a.tareas[Math.min(nueva, a.tareas.length-1)].toLowerCase());
+      }
+      if (s.progreso >= 100){
+        s.estado = 'listo'; tareasHechas++;
+        registrar(a, 'terminó su tarea ✓'); vibrar();
+      }
+    }
+    pintar(a);
+  });
+}
+
+function alternar(){
+  corriendo = !corriendo; vibrar(10);
+  if (corriendo){ paso(); timer = setInterval(paso, 1300); toast('Demo iniciada'); }
+  else { clearInterval(timer); toast('Demo en pausa'); }
+  pintarBoton();
+}
+function pintarBoton(){
+  $('btnDemo').innerHTML = corriendo
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>Pausar'
+    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Iniciar';
+  $('btnDemo').className = corriendo ? 'btn ghost' : 'btn';
+}
+
+/* Pausar al salir de la app para ahorrar batería */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && corriendo) alternar();
+});
+
+/* ===== Auto-actualización ===== */
+async function revisarVersion(reg){
+  try{
+    const r = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const {version} = await r.json();
+    if (version && version !== APP_VERSION){
+      toast('Actualizando…');
+      if (reg && reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+      else if (reg) reg.update();
+    }
+  }catch(e){ /* sin conexión: seguimos con lo que hay */ }
+}
+
+if ('serviceWorker' in navigator){
+  let recargado = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargado) return; recargado = true;
+    setTimeout(() => location.reload(), 600);
+  });
+  navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(reg => {
+    reg.update(); revisarVersion(reg);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden){ reg.update(); revisarVersion(reg); }
+    });
+    setInterval(() => { reg.update(); revisarVersion(reg); }, 30 * 60 * 1000);
+  }).catch(() => {});
+}
+
+/* ===== Inicio ===== */
+crearTarjetas();
+AGENTES.forEach(pintar);
+pintarBoton();
+$('btnDemo').addEventListener('click', alternar);
+$('subtitulo').textContent = 'Demo de ejemplo · v' + APP_VERSION;
+</script>
+</body>
+</html>
