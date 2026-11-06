@@ -1,0 +1,25 @@
+{
+  "name": "panel-agentes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fravier3/panel-agentes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Fravier3/panel-agentes/issues"
+  },
+  "homepage": "https://github.com/Fravier3/panel-agentes#readme",
+  "devDependencies": {
+    "vite": "^8.3.6"
+  }
+}
